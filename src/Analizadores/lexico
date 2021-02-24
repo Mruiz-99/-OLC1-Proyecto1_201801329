@@ -11,14 +11,46 @@ import java_cup.runtime.Symbol;
 %unicode
 %ignorecase
 
-%ini {
+%init{
     yyline = 1 ;
     yychar = 1 ;
-%ini}
+%init}
 
-BLANCO = [\r\t]+
-D = [0-9]+
-D = [0-9]+("."[ |0-9]+)?
+BLANCO = [ \r\t]+
+D= [0-9]+
+DD = [0-9]+("."[ |0-9]+)?
+L = [a-zA-Z_]+
+ESPECIAL = [\n\'\"]
+
 
 %%
 
+"{" {return new Symbol(sym.LLIZQ,yyline,yychar, yytext());} 
+"}" {return new Symbol(sym.LLDER,yyline,yychar, yytext());}
+"CONJ" {return new Symbol(sym.RESERVADA,yyline,yychar, yytext());} 
+"%%" {return new Symbol(sym.FINSECCION,yyline,yychar, yytext());} 
+"//" {return new Symbol(sym.COMENTARIO,yyline,yychar, yytext());} 
+"<!" {return new Symbol(sym.APERCOMENTMULT,yyline,yychar, yytext());} 
+"!>" {return new Symbol(sym.CIERRCOMENTMULT,yyline,yychar, yytext());} 
+":" {return new Symbol(sym.DOSPUNTOS,yyline,yychar, yytext());} 
+{L}({L}|{D})* {return new Symbol(sym.IDENTIFICADOR), yyline, yychar, yytext());}
+"->" {return new Symbol(sym.ASIGNACION,yyline,yychar, yytext());} 
+"," {return new Symbol(sym.COMA,yyline,yychar, yytext());} 
+"~" {return new Symbol(sym.RANGO,yyline,yychar, yytext());} 
+";" {return new Symbol(sym.PTCOMA,yyline,yychar, yytext());} 
+"." {return new Symbol(sym.CONCATENACION,yyline,yychar, yytext());} 
+"|" {return new Symbol(sym.DISYUNCION,yyline,yychar, yytext());} 
+"*" {return new Symbol(sym.CEROMAS,yyline,yychar, yytext());} 
+"+" {return new Symbol(sym.UNOMAS,yyline,yychar, yytext());} 
+"?" {return new Symbol(sym.CEROUNA,yyline,yychar, yytext());} 
+{ESPECIAL} {return new Symbol(sym.CESPECIAL,yyline,yychar, yytext());} 
+\".\" {return new Symbol(sym.CARACTER,yyline,yychar, yytext());} 
+\".*\" {return new Symbol(sym.CADENA,yyline,yychar, yytext());} 
+{BLANCOS} {} 
+{D} {return new Symbol(sym.ENTERO,yyline,yychar, yytext());} 
+{DD} {return new Symbol(sym.DECIMAL,yyline,yychar, yytext());} 
+
+
+. {
+    System.out.println("Este es un error lexico: "+yytext()+", en la linea: "+yyline+", en la columna: "+yychar);
+}
