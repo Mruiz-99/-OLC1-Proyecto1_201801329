@@ -1,31 +1,94 @@
 package Analizadores; 
+import java.util.LinkedList;
 import java_cup.runtime.*;
 
 parser code 
 {:
-    /**
-     * Método al que se llama automáticamente ante algún error sintactico.
-     **/ 
+    /**Metodo para reportar errores sintacticos*/
+
     public void syntax_error(Symbol s){ 
-        System.out.println("Error Sintáctico en la Línea " + (s.left) +
+        System.out.println("Error sintáctico en la línea " + (s.left) +
         " Columna "+s.right+ ". No se esperaba este componente: " +s.value+"."); 
     } 
 
-    /**
-     * Método al que se llama automáticamente ante algún error sintáctico 
-     * en el que ya no es posible una recuperación de errores.
-     **/ 
+    /**Metodo para reportar errores sintacticos en que ya no es posible la recuperacion*/
+
     public void no_recuprecion_syntax_error(Symbol s) throws java.lang.Exception{ 
         System.out.println("Error síntactico irrecuperable en la Línea " + 
-        (s.left)+ " Columna "+s.right+". Componente " + s.value + 
-        " no reconocido."); 
+        (s.left)+ " Columna "+s.right+". Componente " + s.value + " no reconocido."); 
     }  
+    
+    public LinkedList<Instruccion> AST;
+
+    public LinkedList<Instruccion> getAST() {
+        return AST;
+    }
 :} 
 
-terminal String LLIZQ,LLDER, RESERVADA, FINSECCION, COMENTARIO, APERCOMENTMULT, CIERRCOMENTMULT, DOSPUNTOS, IDENTIFICADOR, ASIGNACION, COMA;
+terminal String LLIZQ,LLDER, RESERVADA, FINSECCION, DOSPUNTOS, IDENTIFICADOR, ASIGNACION, COMA;
 terminal String RANGO, PTCOMA, CONCATENACION, DISYUNCION, CEROMAS, CEROUNA, UNOMAS, CESPECIAL, CARACTER, CADENA, ENTERO, DECIMAL;
 
-non terminal ini;
+non terminal inicio;
 non terminal instrucciones;
 non terminal instruccion;
 non terminal expresion;
+
+start with inicio; 
+
+inicio::=instrucciones:a{:
+    //se guarda el AST
+    parser.AST=a;
+:};
+
+
+
+
+
+instrucciones ::= 
+   instrucciones: a instruccion: b{:RESULT=a; RESULT.add(b);:}
+ | instruccion: a {:RESULT=new LinkedList<>(); RESULT.add(a);:}
+; 
+
+instruccion ::= 
+   RIMPRIMIR    PARIZQ expresion_cadena:a PARDER PTCOMA                          {:RESULT=new Imprimir(a);:}
+ | RMIENTRAS    PARIZQ expresion_logica:a PARDER LLAVIZQ instrucciones:b LLAVDER {:RESULT=new Mientras(a,b);:}
+ | RNUMERO      IDENTIFICADOR:a PTCOMA                                           {:RESULT=new Declaracion(a,Tipo.NUMERO);:}
+ | RCARACTER    IDENTIFICADOR:a PTCOMA                                           {:RESULT=new Declaracion(a,Tipo.CARACTER);:}
+ | IDENTIFICADOR:a IGUAL expresion_numerica:b PTCOMA                             {:RESULT=new Asignacion(a,b);:}
+ | RIF PARIZQ expresion_logica:a PARDER LLAVIZQ instrucciones:b LLAVDER          {:RESULT=new If(a,b);:}
+ | RIF PARIZQ expresion_logica:a PARDER LLAVIZQ instrucciones:b LLAVDER  RELSE LLAVIZQ instrucciones:c LLAVDER {:RESULT=new If(a,b,c);:}
+ | RIF PARIZQ expresion_logica:a PARDER LLAVIZQ instrucciones:b LLAVDER else_ifs:l {:RESULT=new If(a,b,l,null);:} 
+ | RIF PARIZQ expresion_logica:a PARDER LLAVIZQ instrucciones:b LLAVDER else_ifs:l RELSE LLAVIZQ instrucciones:c LLAVDER {:RESULT=new If(a,b,l,c);:} 
+ | IDENTIFICADOR:a INCREMENTO PTCOMA                                          {:RESULT=new Incremento(a);:}
+ | IDENTIFICADOR:a DECREMENTO PTCOMA                                          {:RESULT=new Decremento(a);:}
+ | error
+;
+
+else_ifs ::= else_ifs:l RELSE RIF PARIZQ expresion_logica:a PARDER LLAVIZQ instrucciones:b LLAVDER {:RESULT= l; RESULT.add(new If(a,b));:}
+  | RELSE RIF PARIZQ expresion_logica:a PARDER LLAVIZQ instrucciones:b LLAVDER {:RESULT= new LinkedList<>(); RESULT.add(new If(a,b));:}
+;
+
+expresion_numerica  ::= 
+    MENOS expresion_numerica:a                               {:RESULT=new Operacion(a,Operacion.Tipo_operacion.NEGATIVO);:}%prec UMENOS     
+ |  expresion_numerica:a MAS        expresion_numerica:b     {:RESULT=new Operacion(a,b,Operacion.Tipo_operacion.SUMA);:}
+ |  expresion_numerica:a MENOS      expresion_numerica:b     {:RESULT=new Operacion(a,b,Operacion.Tipo_operacion.RESTA);:}
+ |  expresion_numerica:a POR        expresion_numerica:b     {:RESULT=new Operacion(a,b,Operacion.Tipo_operacion.MULTIPLICACION);:}
+ |  expresion_numerica:a DIVIDIDO   expresion_numerica:b     {:RESULT=new Operacion(a,b,Operacion.Tipo_operacion.DIVISION);:}
+ |  PARIZQ expresion_numerica:a PARDER                       {:RESULT=a;:}
+ |  ENTERO:a                                                 {:RESULT=new Operacion(new Double(a));:}
+ |  DECIMAL:a                                                {:RESULT=new Operacion(new Double(a));:}
+ |  CARACTER:a                                               {:RESULT=new Operacion(a,Operacion.Tipo_operacion.CARACTER);:} 
+ |  IDENTIFICADOR: a                                         {:RESULT=new Operacion(a,Operacion.Tipo_operacion.IDENTIFICADOR);:}
+
+;
+
+expresion_cadena::=
+    expresion_cadena:a CONCAT expresion_cadena:b {:RESULT=new Operacion(a,b,Operacion.Tipo_operacion.CONCATENACION);:}
+ |  CADENA:a                                     {:RESULT=new Operacion(a,Operacion.Tipo_operacion.CADENA);:}
+ |  expresion_numerica:a                         {:RESULT=a;:}
+;
+
+expresion_logica  ::= 
+   expresion_numerica:a  MAYQUE   expresion_numerica:b{:RESULT=new Operacion(a,b, Operacion.Tipo_operacion.MAYOR_QUE);:} 
+ | expresion_numerica:a  MENQUE   expresion_numerica:b{:RESULT=new Operacion(a,b, Operacion.Tipo_operacion.MENOR_QUE);:}  
+;

@@ -19,9 +19,12 @@ import java_cup.runtime.Symbol;
 BLANCO = [ \r\t]+
 D= [0-9]+
 DD = [0-9]+("."[ |0-9]+)?
-L = [a-zA-Z_]+
 ESPECIAL = [\n\'\"]
-
+COMENTARIO     =   ("//".*\r\n)|("//".*\n)|("//".*\r)
+COMENTMULTI    =   "<!"([^/]|[^]|[^/])*"!>"
+CADENACOMILLASDOBLES = [\"]([^\"\n]|(\\\"))*[\"]
+CARACTER  = [\']([^\t\'\"\n]|(\\\")|(\\n)|(\\\')|(\\t))?[\']  
+IDENTIFICADOR=[A-Za-z]+["_"0-9A-Za-z]*
 
 %%
 
@@ -29,11 +32,8 @@ ESPECIAL = [\n\'\"]
 "}" {return new Symbol(sym.LLDER,yyline,yychar, yytext());}
 "CONJ" {return new Symbol(sym.RESERVADA,yyline,yychar, yytext());} 
 "%%" {return new Symbol(sym.FINSECCION,yyline,yychar, yytext());} 
-"//" {return new Symbol(sym.COMENTARIO,yyline,yychar, yytext());} 
-"<!" {return new Symbol(sym.APERCOMENTMULT,yyline,yychar, yytext());} 
-"!>" {return new Symbol(sym.CIERRCOMENTMULT,yyline,yychar, yytext());} 
 ":" {return new Symbol(sym.DOSPUNTOS,yyline,yychar, yytext());} 
-{L}({L}|{D})* {return new Symbol(sym.IDENTIFICADOR), yyline, yychar, yytext());}
+{IDENTIFICADOR} {return new Symbol(sym.IDENTIFICADOR), yyline, yychar, yytext());}
 "->" {return new Symbol(sym.ASIGNACION,yyline,yychar, yytext());} 
 "," {return new Symbol(sym.COMA,yyline,yychar, yytext());} 
 "~" {return new Symbol(sym.RANGO,yyline,yychar, yytext());} 
@@ -44,9 +44,11 @@ ESPECIAL = [\n\'\"]
 "+" {return new Symbol(sym.UNOMAS,yyline,yychar, yytext());} 
 "?" {return new Symbol(sym.CEROUNA,yyline,yychar, yytext());} 
 {ESPECIAL} {return new Symbol(sym.CESPECIAL,yyline,yychar, yytext());} 
-\".\" {return new Symbol(sym.CARACTER,yyline,yychar, yytext());} 
-\".*\" {return new Symbol(sym.CADENA,yyline,yychar, yytext());} 
+{CARACTER} {return new Symbol(sym.CARACTER,yyline,yychar, yytext());} 
+{CADENACOMILLASDOBLES} {return new Symbol(sym.CADENA,yyline,yychar, yytext());} 
 {BLANCOS} {} 
+{COMENTARIO} {} 
+{COMENTMULTI} {} 
 {D} {return new Symbol(sym.ENTERO,yyline,yychar, yytext());} 
 {DD} {return new Symbol(sym.DECIMAL,yyline,yychar, yytext());} 
 
