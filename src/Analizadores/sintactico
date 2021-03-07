@@ -1,94 +1,1739 @@
 package Analizadores; 
 import java.util.LinkedList;
 import java_cup.runtime.*;
+import java.util.ArrayList;
+import Errores.MyError;
+import Analizadores.Arbol;
 
 parser code 
 {:
-    /**Metodo para reportar errores sintacticos*/
+    public static Nodo raiz;
+    public int i = 0;
 
     public void syntax_error(Symbol s){ 
-        System.out.println("Error sintáctico en la línea " + (s.left) +
-        " Columna "+s.right+ ". No se esperaba este componente: " +s.value+"."); 
+        System.out.println("Error sintáctico en la Línea " + (s.left) +" Columna "+s.right+ ". No se esperaba este componente: " +s.value+"."); 
+        Interfaz.Interfaz.errores.add(new MyError(s.left,s.right, (String) s.value,"Error sintáctico en la Línea " + (s.left) +" Columna "+s.right+ ". No se esperaba este componente: " +s.value+"."));
     } 
-
-    /**Metodo para reportar errores sintacticos en que ya no es posible la recuperacion*/
-
-    public void no_recuprecion_syntax_error(Symbol s) throws java.lang.Exception{ 
-        System.out.println("Error síntactico irrecuperable en la Línea " + 
-        (s.left)+ " Columna "+s.right+". Componente " + s.value + " no reconocido."); 
+     
+    public void unrecovered_syntax_error(Symbol s) throws java.lang.Exception{ 
+        System.out.println("Error síntactico irrecuperable en la Línea " + (s.left)+ " Columna "+s.right+". Componente " + s.value + " no reconocido."); 
+        Interfaz.Interfaz.errores.add(new MyError(s.left,s.right, (String) s.value,"Error síntactico irrecuperable en la Línea " + (s.left)+ " Columna "+s.right+". Componente " + s.value + " no reconocido."));
     }  
-    
-    public LinkedList<Instruccion> AST;
-
-    public LinkedList<Instruccion> getAST() {
+    public LinkedList<Nodo> AST;
+    Arbol lista = new Arbol();
+    public LinkedList<Nodo> getAST() {
         return AST;
     }
 :} 
 
-terminal String LLIZQ,LLDER, RESERVADA, FINSECCION, DOSPUNTOS, IDENTIFICADOR, ASIGNACION, COMA;
-terminal String RANGO, PTCOMA, CONCATENACION, DISYUNCION, CEROMAS, CEROUNA, UNOMAS, CESPECIAL, CARACTER, CADENA, ENTERO, DECIMAL;
+terminal String LLIZQ,LLDER, RESERVADA, FINSECCION, DOSPUNTOS, IDENTIFICADOR, GUION, MAYORQ, COMA, ALFABETO,COMILLASDOBLES, CESPECIAL;
+terminal String RANGO, PTCOMA, CONCATENACION, DISYUNCION, CEROMAS, CEROUNA, UNOMAS, CADENA, DECIMAL, COMILLA,ESP;
+
 
 non terminal inicio;
 non terminal instrucciones;
-non terminal instruccion;
-non terminal expresion;
+non terminal SecConjuntos;
+non terminal FinalSeccion;
+non terminal SecDefER;
+non terminal SecLexemas;
+non terminal conjunto;
+non terminal Nodo ER;
+non terminal lexema;
+non terminal notacionConj;
+non terminal ERpolaca;
+non terminal ERPolMul;
+
 
 start with inicio; 
 
-inicio::=instrucciones:a{:
-    //se guarda el AST
-    parser.AST=a;
-:};
+inicio::= 
+    LLIZQ instrucciones LLDER 
+    | error 
 
-
-
-
-
+;
 instrucciones ::= 
-   instrucciones: a instruccion: b{:RESULT=a; RESULT.add(b);:}
- | instruccion: a {:RESULT=new LinkedList<>(); RESULT.add(a);:}
+    SecDefER:a FinalSeccion SecLexemas 
 ; 
 
-instruccion ::= 
-   RIMPRIMIR    PARIZQ expresion_cadena:a PARDER PTCOMA                          {:RESULT=new Imprimir(a);:}
- | RMIENTRAS    PARIZQ expresion_logica:a PARDER LLAVIZQ instrucciones:b LLAVDER {:RESULT=new Mientras(a,b);:}
- | RNUMERO      IDENTIFICADOR:a PTCOMA                                           {:RESULT=new Declaracion(a,Tipo.NUMERO);:}
- | RCARACTER    IDENTIFICADOR:a PTCOMA                                           {:RESULT=new Declaracion(a,Tipo.CARACTER);:}
- | IDENTIFICADOR:a IGUAL expresion_numerica:b PTCOMA                             {:RESULT=new Asignacion(a,b);:}
- | RIF PARIZQ expresion_logica:a PARDER LLAVIZQ instrucciones:b LLAVDER          {:RESULT=new If(a,b);:}
- | RIF PARIZQ expresion_logica:a PARDER LLAVIZQ instrucciones:b LLAVDER  RELSE LLAVIZQ instrucciones:c LLAVDER {:RESULT=new If(a,b,c);:}
- | RIF PARIZQ expresion_logica:a PARDER LLAVIZQ instrucciones:b LLAVDER else_ifs:l {:RESULT=new If(a,b,l,null);:} 
- | RIF PARIZQ expresion_logica:a PARDER LLAVIZQ instrucciones:b LLAVDER else_ifs:l RELSE LLAVIZQ instrucciones:c LLAVDER {:RESULT=new If(a,b,l,c);:} 
- | IDENTIFICADOR:a INCREMENTO PTCOMA                                          {:RESULT=new Incremento(a);:}
- | IDENTIFICADOR:a DECREMENTO PTCOMA                                          {:RESULT=new Decremento(a);:}
- | error
+FinalSeccion ::= 
+     FINSECCION FinalSeccion
+|    FINSECCION
+; 
+
+SecDefER ::= 
+       conjunto SecDefER
+   |   ER SecDefER
+   |   conjunto
+   |   ER
+   |   error SecDefER
+   |   error 
+; 
+
+
+SecLexemas ::= 
+   lexema SecLexemas
+   | lexema
+   | error SecLexemas
+   | error 
+; 
+
+conjunto ::= 
+   RESERVADA DOSPUNTOS IDENTIFICADOR GUION MAYORQ notacionConj PTCOMA
+; 
+               
+notacionConj ::= 
+   ALFABETO COMA notacionConj
+|  ALFABETO RANGO ALFABETO
+|  ALFABETO
+|  CESPECIAL COMA notacionConj
+|  CESPECIAL RANGO CESPECIAL
+|  CESPECIAL
+; 
+
+ER ::= 
+   IDENTIFICADOR GUION MAYORQ  ERpolaca:a  PTCOMA  {:Nodo padre = new Nodo();
+                                                    i++;
+                                                    padre.idHoja = i;
+                                                    padre.valor = ".";
+                                                    Nodo hijo = new Nodo();
+                                                    i++;
+                                                    hijo.idHoja = i;
+                                                    hijo.valor = "#";
+                                                    padre.Anulable = "No anulable";
+                                                    hijo.Anulable = "No anulable";
+                                                    padre.left = (Nodo) a;
+                                                    padre.right = hijo;
+                                                    lista.addAST(padre);
+                                                     i = 0;:}
+; 
+
+ERpolaca ::= 
+   CEROMAS:a LLIZQ IDENTIFICADOR:b LLDER {:
+                        Nodo padre = new Nodo();
+                        i++;
+                        padre.idHoja = i;
+                        padre.valor = a;
+                        padre.Anulable = "Anulable";
+                        Nodo hijo = new Nodo();
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.valor = b;
+                        hijo.Anulable = "No anulable";
+                        padre.left = hijo;
+                        RESULT = padre;
+                    :}
+|  CEROMAS:a ESP:b {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        padre.Anulable = "Anulable";
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.left = hijo;
+                        RESULT = padre;
+                    :}
+|  CEROMAS:a CADENA:b {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        padre.Anulable = "Anulable";
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.left = hijo;
+                        RESULT = padre;
+                    :}
+|  CEROMAS:a ERPolMul:b {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        padre.Anulable = "Anulable";
+                        padre.left = (Nodo) b;
+                        RESULT = padre;
+                    :}
+|  CONCATENACION:a CADENA:b ERpolaca:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = (Nodo) c;
+                        Nodo hijo2 = new Nodo();
+                        hijo2 = (Nodo) c;
+                        if((hijo.Anulable.equals("Anulable")) && (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+
+
+|  CONCATENACION:a ERpolaca:b CADENA:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = c;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.right = hijo;
+                        padre.left = (Nodo) b;
+                        Nodo hijo2 = new Nodo();
+                        hijo2 = (Nodo) b;
+                        if((hijo2.Anulable.equals("Anulable")) && (hijo.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  CONCATENACION:a LLIZQ IDENTIFICADOR:b LLDER CADENA:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) && (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  CONCATENACION:a CADENA:b LLIZQ IDENTIFICADOR:c LLDER {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) && (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  CONCATENACION:a CADENA:b CADENA:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        if((hijo.Anulable.equals("Anulable")) && (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        RESULT = padre;
+                    :}
+|  CONCATENACION:a ESP:b CADENA:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) && (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  CONCATENACION:a CADENA:b ESP:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) && (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  CONCATENACION:a ERpolaca:b ERpolaca:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        padre.right = (Nodo) c;
+                        padre.left = (Nodo) b;
+                        Nodo hijo = new Nodo();
+                        hijo = (Nodo) b;
+                        Nodo hijo2 = new Nodo();
+                        hijo2 = (Nodo) c;
+                        if((hijo.Anulable.equals("Anulable")) && (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  CONCATENACION:a LLIZQ IDENTIFICADOR:b LLDER ERpolaca:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = (Nodo) c;
+                        Nodo hijo2 = new Nodo();
+                        hijo2 = (Nodo) c;
+                        if((hijo.Anulable.equals("Anulable")) && (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  CONCATENACION:a ERpolaca:b LLIZQ IDENTIFICADOR:c LLDER {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = c;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.right = hijo;
+                        padre.left = (Nodo) b;
+                        Nodo hijo2 = new Nodo();
+                        hijo2 = (Nodo) b;
+                        if((hijo2.Anulable.equals("Anulable")) && (hijo.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+
+
+
+
+|  CONCATENACION:a LLIZQ IDENTIFICADOR:b LLDER LLIZQ IDENTIFICADOR:c LLDER {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) && (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  CONCATENACION:a  ESP:b  ERpolaca:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = (Nodo) c;
+                        Nodo hijo2 = new Nodo();
+                        hijo2 = (Nodo) c;
+                        if((hijo.Anulable.equals("Anulable")) && (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  CONCATENACION:a LLIZQ IDENTIFICADOR:b LLDER  ESP:c  {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) && (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  CONCATENACION:a ESP:b LLIZQ IDENTIFICADOR:c LLDER  {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        padre.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) && (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  CONCATENACION:a ERpolaca:b  ESP:c  {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = c;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.right = hijo;
+                        padre.left = (Nodo) b;
+                        Nodo hijo2 = new Nodo();
+                        hijo2 = (Nodo) b;
+                        if((hijo2.Anulable.equals("Anulable")) && (hijo.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  CONCATENACION:a  ESP:b ESP:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) && (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+
+|  DISYUNCION:a CADENA:b ERpolaca:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = (Nodo) c;
+                        Nodo hijo2 = new Nodo();
+                        hijo2 = (Nodo) c;
+                        if((hijo.Anulable.equals("Anulable")) || (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+
+
+|  DISYUNCION:a ERpolaca:b CADENA:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = c;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.right = hijo;
+                        padre.left = (Nodo) b;
+                        Nodo hijo2 = new Nodo();
+                        hijo2 = (Nodo) b;
+                        if((hijo2.Anulable.equals("Anulable")) || (hijo.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  DISYUNCION:a LLIZQ IDENTIFICADOR:b LLDER CADENA:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) || (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  DISYUNCION:a CADENA:b LLIZQ IDENTIFICADOR:c LLDER {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) || (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  DISYUNCION:a CADENA:b CADENA:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        if((hijo.Anulable.equals("Anulable")) || (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        RESULT = padre;
+                    :}
+|  DISYUNCION:a ESP:b CADENA:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) || (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  DISYUNCION:a CADENA:b ESP:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) || (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  DISYUNCION:a ERpolaca:b ERpolaca:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        padre.right = (Nodo) c;
+                        padre.left = (Nodo) b;
+                        Nodo hijo = new Nodo();
+                        hijo = (Nodo) c;
+                        Nodo hijo2 = new Nodo();
+                        hijo2 = (Nodo) b;
+                        if((hijo2.Anulable.equals("Anulable")) || (hijo.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  DISYUNCION:a LLIZQ IDENTIFICADOR:b LLDER ERpolaca:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = (Nodo) c;
+                        Nodo hijo2 = new Nodo();
+                        hijo2 = (Nodo) c;
+                        if((hijo.Anulable.equals("Anulable")) || (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  DISYUNCION:a ERpolaca:b LLIZQ IDENTIFICADOR:c LLDER {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = c;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.right = hijo;
+                        padre.left = (Nodo) b;
+                        Nodo hijo2 = new Nodo();
+                        hijo2 = (Nodo) b;
+                        if((hijo2.Anulable.equals("Anulable")) || (hijo.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  DISYUNCION:a LLIZQ IDENTIFICADOR:b LLDER LLIZQ IDENTIFICADOR:c LLDER {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) || (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  DISYUNCION:a  ESP:b  ERpolaca:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = (Nodo) c;
+                        Nodo hijo2 = new Nodo();
+                        hijo2 = (Nodo) c;
+                        if((hijo.Anulable.equals("Anulable")) || (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  DISYUNCION:a LLIZQ IDENTIFICADOR:b LLDER  ESP:c  {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) || (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  DISYUNCION:a ESP:b LLIZQ IDENTIFICADOR:c LLDER  {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        padre.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) || (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  DISYUNCION:a ERpolaca:b  ESP:c  {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = c;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.right = hijo;
+                        padre.left = (Nodo) b;
+                        Nodo hijo2 = new Nodo();
+                        hijo2 = (Nodo) b;
+                        if((hijo2.Anulable.equals("Anulable")) || (hijo.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  DISYUNCION:a  ESP:b ESP:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) || (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+
+|  UNOMAS:a LLIZQ IDENTIFICADOR:b LLDER {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        padre.Anulable = "No anulable";
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.left = hijo;
+                        RESULT = padre;
+                    :}
+|  UNOMAS:a CADENA:b {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        padre.Anulable = "No anulable";
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.left = hijo;
+                        RESULT = padre;
+                    :}
+|  UNOMAS:a ERPolMul:b {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo = (Nodo) b;
+                        if(hijo.Anulable.equals("No anulable")){
+                            padre.Anulable = "No anulable";
+                        }else{
+                            padre.Anulable = "Anulable";
+                        }
+                        padre.left = (Nodo) b;
+                        RESULT = padre;
+                    :}
+|  UNOMAS:a ESP:b {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        padre.Anulable = "No anulable";
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.left = hijo;
+                        RESULT = padre;
+                    :}
+|  CEROUNA:a LLIZQ IDENTIFICADOR:b LLDER {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        padre.Anulable = "Anulable";
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.left = hijo;
+                        RESULT = padre;
+                    :}
+|  CEROUNA:a CADENA:b {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        padre.Anulable = "Anulable";
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.left = hijo;
+                        RESULT = padre;
+                    :}
+|  CEROUNA:a ERPolMul:b {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        padre.Anulable = "Anulable";
+                        padre.left = (Nodo) b;
+                        RESULT = padre;
+                    :}
+|  CEROUNA:a ESP:b {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        padre.Anulable = "Anulable";
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.left = hijo;
+                        RESULT = padre;
+                    :}
+
+; 
+
+ERPolMul ::= 
+
+CONCATENACION:a CADENA:b ERpolaca:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = (Nodo) c;
+                        Nodo hijo2 = new Nodo();
+                        hijo2 = (Nodo) c;
+                        if((hijo.Anulable.equals("Anulable")) && (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+
+
+|  CONCATENACION:a ERpolaca:b CADENA:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = c;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.right = hijo;
+                        padre.left = (Nodo) b;
+                        Nodo hijo2 = new Nodo();
+                        hijo2 = (Nodo) b;
+                        if((hijo2.Anulable.equals("Anulable")) && (hijo.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  CONCATENACION:a LLIZQ IDENTIFICADOR:b LLDER CADENA:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) && (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  CONCATENACION:a CADENA:b LLIZQ IDENTIFICADOR:c LLDER {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) && (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  CONCATENACION:a CADENA:b CADENA:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        if((hijo.Anulable.equals("Anulable")) && (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        RESULT = padre;
+                    :}
+|  CONCATENACION:a ESP:b CADENA:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) && (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  CONCATENACION:a CADENA:b ESP:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) && (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  CONCATENACION:a ERpolaca:b ERpolaca:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        padre.right = (Nodo) c;
+                        padre.left = (Nodo) b;
+                        Nodo hijo = new Nodo();
+                        hijo = (Nodo) b;
+                        Nodo hijo2 = new Nodo();
+                        hijo2 = (Nodo) c;
+                        if((hijo.Anulable.equals("Anulable")) && (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  CONCATENACION:a LLIZQ IDENTIFICADOR:b LLDER ERpolaca:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = (Nodo) c;
+                        Nodo hijo2 = new Nodo();
+                        hijo2 = (Nodo) c;
+                        if((hijo.Anulable.equals("Anulable")) && (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  CONCATENACION:a ERpolaca:b LLIZQ IDENTIFICADOR:c LLDER {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = c;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.right = hijo;
+                        padre.left = (Nodo) b;
+                        Nodo hijo2 = new Nodo();
+                        hijo2 = (Nodo) b;
+                        if((hijo2.Anulable.equals("Anulable")) && (hijo.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+
+
+
+
+|  CONCATENACION:a LLIZQ IDENTIFICADOR:b LLDER LLIZQ IDENTIFICADOR:c LLDER {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) && (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  CONCATENACION:a  ESP:b  ERpolaca:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = (Nodo) c;
+                        Nodo hijo2 = new Nodo();
+                        hijo2 = (Nodo) c;
+                        if((hijo.Anulable.equals("Anulable")) && (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  CONCATENACION:a LLIZQ IDENTIFICADOR:b LLDER  ESP:c  {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) && (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  CONCATENACION:a ESP:b LLIZQ IDENTIFICADOR:c LLDER  {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        padre.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) && (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  CONCATENACION:a ERpolaca:b  ESP:c  {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = c;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.right = hijo;
+                        padre.left = (Nodo) b;
+                        Nodo hijo2 = new Nodo();
+                        hijo2 = (Nodo) b;
+                        if((hijo2.Anulable.equals("Anulable")) && (hijo.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  CONCATENACION:a  ESP:b ESP:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) && (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+
+|  DISYUNCION:a CADENA:b ERpolaca:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = (Nodo) c;
+                        Nodo hijo2 = new Nodo();
+                        hijo2 = (Nodo) c;
+                        if((hijo.Anulable.equals("Anulable")) || (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+
+
+|  DISYUNCION:a ERpolaca:b CADENA:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = c;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.right = hijo;
+                        padre.left = (Nodo) b;
+                        Nodo hijo2 = new Nodo();
+                        hijo2 = (Nodo) b;
+                        if((hijo2.Anulable.equals("Anulable")) || (hijo.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  DISYUNCION:a LLIZQ IDENTIFICADOR:b LLDER CADENA:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) || (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  DISYUNCION:a CADENA:b LLIZQ IDENTIFICADOR:c LLDER {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) || (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  DISYUNCION:a CADENA:b CADENA:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        if((hijo.Anulable.equals("Anulable")) || (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        RESULT = padre;
+                    :}
+|  DISYUNCION:a ESP:b CADENA:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) || (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  DISYUNCION:a CADENA:b ESP:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) || (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  DISYUNCION:a ERpolaca:b ERpolaca:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        padre.right = (Nodo) c;
+                        padre.left = (Nodo) b;
+                        Nodo hijo = new Nodo();
+                        hijo = (Nodo) c;
+                        Nodo hijo2 = new Nodo();
+                        hijo2 = (Nodo) b;
+                        if((hijo2.Anulable.equals("Anulable")) || (hijo.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  DISYUNCION:a LLIZQ IDENTIFICADOR:b LLDER ERpolaca:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = (Nodo) c;
+                        Nodo hijo2 = new Nodo();
+                        hijo2 = (Nodo) c;
+                        if((hijo.Anulable.equals("Anulable")) || (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  DISYUNCION:a ERpolaca:b LLIZQ IDENTIFICADOR:c LLDER {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = c;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.right = hijo;
+                        padre.left = (Nodo) b;
+                        Nodo hijo2 = new Nodo();
+                        hijo2 = (Nodo) b;
+                        if((hijo2.Anulable.equals("Anulable")) || (hijo.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  DISYUNCION:a LLIZQ IDENTIFICADOR:b LLDER LLIZQ IDENTIFICADOR:c LLDER {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) || (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  DISYUNCION:a  ESP:b  ERpolaca:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = (Nodo) c;
+                        Nodo hijo2 = new Nodo();
+                        hijo2 = (Nodo) c;
+                        if((hijo.Anulable.equals("Anulable")) || (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  DISYUNCION:a LLIZQ IDENTIFICADOR:b LLDER  ESP:c  {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) || (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  DISYUNCION:a ESP:b LLIZQ IDENTIFICADOR:c LLDER  {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        padre.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) || (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  DISYUNCION:a ERpolaca:b  ESP:c  {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = c;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        padre.right = hijo;
+                        padre.left = (Nodo) b;
+                        Nodo hijo2 = new Nodo();
+                        hijo2 = (Nodo) b;
+                        if((hijo2.Anulable.equals("Anulable")) || (hijo.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
+|  DISYUNCION:a  ESP:b ESP:c {:
+                        Nodo padre = new Nodo();
+                        padre.valor = a;
+                        i++;
+                        padre.idHoja = i;
+                        Nodo hijo = new Nodo();
+                        hijo.valor = b;
+                        i++;
+                        hijo.idHoja = i;
+                        hijo.Anulable = "No anulable";
+                        Nodo hijo2 = new Nodo();
+                        hijo2.valor = c;
+                        i++;
+                        hijo2.idHoja = i;
+                        hijo2.Anulable = "No anulable";
+                        padre.left = hijo;
+                        padre.right = hijo2;
+                        if((hijo.Anulable.equals("Anulable")) || (hijo2.Anulable.equals("Anulable"))){
+                            padre.Anulable = "Anulable";
+                        }else{
+                            padre.Anulable = "No anulable";
+                        }
+                        RESULT = padre;
+                    :}
 ;
 
-else_ifs ::= else_ifs:l RELSE RIF PARIZQ expresion_logica:a PARDER LLAVIZQ instrucciones:b LLAVDER {:RESULT= l; RESULT.add(new If(a,b));:}
-  | RELSE RIF PARIZQ expresion_logica:a PARDER LLAVIZQ instrucciones:b LLAVDER {:RESULT= new LinkedList<>(); RESULT.add(new If(a,b));:}
-;
+lexema ::= 
+   IDENTIFICADOR DOSPUNTOS CADENA PTCOMA
+; 
 
-expresion_numerica  ::= 
-    MENOS expresion_numerica:a                               {:RESULT=new Operacion(a,Operacion.Tipo_operacion.NEGATIVO);:}%prec UMENOS     
- |  expresion_numerica:a MAS        expresion_numerica:b     {:RESULT=new Operacion(a,b,Operacion.Tipo_operacion.SUMA);:}
- |  expresion_numerica:a MENOS      expresion_numerica:b     {:RESULT=new Operacion(a,b,Operacion.Tipo_operacion.RESTA);:}
- |  expresion_numerica:a POR        expresion_numerica:b     {:RESULT=new Operacion(a,b,Operacion.Tipo_operacion.MULTIPLICACION);:}
- |  expresion_numerica:a DIVIDIDO   expresion_numerica:b     {:RESULT=new Operacion(a,b,Operacion.Tipo_operacion.DIVISION);:}
- |  PARIZQ expresion_numerica:a PARDER                       {:RESULT=a;:}
- |  ENTERO:a                                                 {:RESULT=new Operacion(new Double(a));:}
- |  DECIMAL:a                                                {:RESULT=new Operacion(new Double(a));:}
- |  CARACTER:a                                               {:RESULT=new Operacion(a,Operacion.Tipo_operacion.CARACTER);:} 
- |  IDENTIFICADOR: a                                         {:RESULT=new Operacion(a,Operacion.Tipo_operacion.IDENTIFICADOR);:}
-
-;
-
-expresion_cadena::=
-    expresion_cadena:a CONCAT expresion_cadena:b {:RESULT=new Operacion(a,b,Operacion.Tipo_operacion.CONCATENACION);:}
- |  CADENA:a                                     {:RESULT=new Operacion(a,Operacion.Tipo_operacion.CADENA);:}
- |  expresion_numerica:a                         {:RESULT=a;:}
-;
-
-expresion_logica  ::= 
-   expresion_numerica:a  MAYQUE   expresion_numerica:b{:RESULT=new Operacion(a,b, Operacion.Tipo_operacion.MAYOR_QUE);:} 
- | expresion_numerica:a  MENQUE   expresion_numerica:b{:RESULT=new Operacion(a,b, Operacion.Tipo_operacion.MENOR_QUE);:}  
-;

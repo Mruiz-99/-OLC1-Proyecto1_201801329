@@ -1,5 +1,7 @@
 package Analizadores;
 import java_cup.runtime.Symbol;
+import java.util.ArrayList;
+import Errores.MyError;
 
 %%
 
@@ -14,45 +16,56 @@ import java_cup.runtime.Symbol;
 %init{
     yyline = 1 ;
     yychar = 1 ;
+    
 %init}
 
 BLANCO = [ \r\t]+
 D= [0-9]+
 DD = [0-9]+("."[ |0-9]+)?
-ESPECIAL = [\n\'\"]
-COMENTARIO     =   ("//".*\r\n)|("//".*\n)|("//".*\r)
-COMENTMULTI    =   "<!"([^/]|[^]|[^/])*"!>"
+COMENTARIO     =   "//".*
+COMENTMULTI    =   "<!"([^/!>]|[^!>]|[^/!>])*"!>"
 CADENACOMILLASDOBLES = [\"]([^\"\n]|(\\\"))*[\"]
-CARACTER  = [\']([^\t\'\"\n]|(\\\")|(\\n)|(\\\')|(\\t))?[\']  
-IDENTIFICADOR=[A-Za-z]+["_"0-9A-Za-z]*
+MAY = [A-Z]
+MIN = [a-z]
+COMILLASDOBLES = [\"]
+COMILLA = [\']
+FINSECCION = "%%"
+IDENTIFICADOR =[A-Za-z]["_"0-9A-Za-z]*
+CESPECIAL =[\32-\125]
 
 %%
 
+{BLANCO} {} 
+{COMENTMULTI} {System.out.println("Este un coment: "+yytext()+" , en la linea: "+yyline+", en la columna: "+yychar);} 
+{COMENTARIO} {} 
+{CADENACOMILLASDOBLES} {return new Symbol(sym.CADENA,yyline,yychar, yytext());} 
+\. {return new Symbol(sym.CONCATENACION,yyline,yychar, yytext());} 
 "{" {return new Symbol(sym.LLIZQ,yyline,yychar, yytext());} 
 "}" {return new Symbol(sym.LLDER,yyline,yychar, yytext());}
 "CONJ" {return new Symbol(sym.RESERVADA,yyline,yychar, yytext());} 
-"%%" {return new Symbol(sym.FINSECCION,yyline,yychar, yytext());} 
+{FINSECCION} {return new Symbol(sym.FINSECCION,yyline,yychar, yytext());} 
+{COMILLA} {return new Symbol(sym.COMILLA,yyline,yychar, yytext());} 
 ":" {return new Symbol(sym.DOSPUNTOS,yyline,yychar, yytext());} 
-{IDENTIFICADOR} {return new Symbol(sym.IDENTIFICADOR), yyline, yychar, yytext());}
-"->" {return new Symbol(sym.ASIGNACION,yyline,yychar, yytext());} 
+"-" {return new Symbol(sym.GUION,yyline,yychar, yytext());} 
+">" {return new Symbol(sym.MAYORQ,yyline,yychar, yytext());} 
 "," {return new Symbol(sym.COMA,yyline,yychar, yytext());} 
 "~" {return new Symbol(sym.RANGO,yyline,yychar, yytext());} 
 ";" {return new Symbol(sym.PTCOMA,yyline,yychar, yytext());} 
-"." {return new Symbol(sym.CONCATENACION,yyline,yychar, yytext());} 
 "|" {return new Symbol(sym.DISYUNCION,yyline,yychar, yytext());} 
 "*" {return new Symbol(sym.CEROMAS,yyline,yychar, yytext());} 
 "+" {return new Symbol(sym.UNOMAS,yyline,yychar, yytext());} 
 "?" {return new Symbol(sym.CEROUNA,yyline,yychar, yytext());} 
-{ESPECIAL} {return new Symbol(sym.CESPECIAL,yyline,yychar, yytext());} 
-{CARACTER} {return new Symbol(sym.CARACTER,yyline,yychar, yytext());} 
-{CADENACOMILLASDOBLES} {return new Symbol(sym.CADENA,yyline,yychar, yytext());} 
-{BLANCOS} {} 
-{COMENTARIO} {} 
-{COMENTMULTI} {} 
+"\n"|"\'"|"\"" {return new Symbol(sym.ESP,yyline,yychar, yytext());} 
+\n {yychar=1;} 
+{COMILLASDOBLES} {return new Symbol(sym.COMILLASDOBLES,yyline,yychar, yytext());} 
+
+{MAY}|{MIN}|{D} {return new Symbol(sym.ALFABETO,yyline,yychar, yytext());} 
 {D} {return new Symbol(sym.ENTERO,yyline,yychar, yytext());} 
 {DD} {return new Symbol(sym.DECIMAL,yyline,yychar, yytext());} 
-
+{IDENTIFICADOR} {return new Symbol(sym.IDENTIFICADOR, yyline, yychar, yytext());}
+{CESPECIAL} {return new Symbol(sym.CESPECIAL,yyline,yychar, yytext());}
 
 . {
-    System.out.println("Este es un error lexico: "+yytext()+", en la linea: "+yyline+", en la columna: "+yychar);
+    System.out.println("Este es un error lexico: "+yytext()+" , en la linea: "+yyline+", en la columna: "+yychar);
+    Interfaz.Interfaz.errores.add(new MyError(yyline,yychar,yytext(),"Este es un error lexico: "+yytext()+", en la linea: "+yyline+", en la columna: "+yychar));
 }
