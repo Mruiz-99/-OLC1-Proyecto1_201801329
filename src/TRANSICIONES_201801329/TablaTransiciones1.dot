@@ -1,0 +1,16 @@
+digraph { 
+  tbl [ 
+ shape=plaintext
+ label=<
+<table border='0' cellborder='1' cellspacing='0' cellpadding='8'>
+ <tr><td>Estado</td><td>\'</td><td>\n</td><td>minus</td><td>mayus</td><td>digito</td><td>" "</td></tr> 
+<tr><td>S0 {1} </td><td> S1 </td><td> --- </td><td> --- </td><td> --- </td><td> --- </td><td> --- </td></tr> 
+<tr><td>S1 {2,3,4,5,6} </td><td> --- </td><td> S2 </td><td> S2 </td><td> S2 </td><td> S2 </td><td> S2 </td></tr> 
+<tr><td>S2 {2,3,4,5,6,7} </td><td> S3 </td><td> S2 </td><td> S2 </td><td> S2 </td><td> S2 </td><td> S2 </td></tr> 
+<tr><td>S3 {8} </td><td> --- </td><td> --- </td><td> --- </td><td> --- </td><td> --- </td><td> --- </td></tr> 
+
+</table>
+
+    >];
+
+}

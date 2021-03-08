@@ -28,12 +28,13 @@ public class Arbol {
     int fila;
     LinkedList<Integer> idAux = new LinkedList<>();
     LinkedList<String> sigAux = new LinkedList<>();
-    String texto, texto2, texto3;
+    String texto, texto2, texto3, texto4;
     String sinComillas;
     LinkedList<String> Estados;
     LinkedList<String> lista_caracteres;
     LinkedList<String> hojas;
     LinkedList<String> transiciones;
+    LinkedList<String> transAFD;
 
     /**
      * @return the listaAST
@@ -52,6 +53,7 @@ public class Arbol {
         texto = "";
         texto2 = "";
         texto3 = "";
+        texto4 = "";
         cHojas = 0;
         i = 0;
         para = null;
@@ -63,19 +65,21 @@ public class Arbol {
         lista_caracteres = new LinkedList<>();
         hojas = new LinkedList<>();
         transiciones = new LinkedList<>();
+        transAFD = new LinkedList<>();
         IdentificandoHojas(raizAST);
         IdentificandoPrimeroUltimo(raizAST);
         IdentificandoSiguientes(raizAST);
         graficar(raizAST, contador);
         graficarTablaSiguientes(raizAST, contador);
         graficarTablaTransiciones(raizAST, contador);
+        graficarAFD(raizAST, contador);
 
     }
 
     public void graficar(Nodo raiz, int numArbol) {
         FileWriter fichero = null;
         try {
-            fichero = new FileWriter("arbolER" + numArbol + ".dot");
+            fichero = new FileWriter("C:\\Users\\Mruiz\\Documents\\NetBeansProjects\\[OLC1]Proyecto1\\src\\ARBOLES_201801329\\arbolER" + numArbol + ".dot");
             PrintWriter pw = null;
             pw = new PrintWriter(fichero);
             texto2 = "digraph dibujo{ \n node [shape = record, style=filled]; \n";
@@ -85,7 +89,7 @@ public class Arbol {
             pw.close();
             try {
                 ProcessBuilder proceso;
-                proceso = new ProcessBuilder("dot", "-Tpng", "-o", "arbolER" + numArbol + ".jpg", "arbolER" + numArbol + ".dot");
+                proceso = new ProcessBuilder("dot", "-Tpng", "-o", "C:\\Users\\Mruiz\\Documents\\NetBeansProjects\\[OLC1]Proyecto1\\src\\ARBOLES_201801329\\arbolER" + numArbol + ".jpg", "C:\\Users\\Mruiz\\Documents\\NetBeansProjects\\[OLC1]Proyecto1\\src\\ARBOLES_201801329\\arbolER" + numArbol + ".dot");
                 proceso.start();
 
             } catch (Exception e) {
@@ -276,7 +280,7 @@ public class Arbol {
             String aux = "";
             boolean repetido;
             int idHijo = 0;
-            fichero2 = new FileWriter("TablaSig" + numArbol + ".dot");
+            fichero2 = new FileWriter("C:\\Users\\Mruiz\\Documents\\NetBeansProjects\\[OLC1]Proyecto1\\src\\SIGUIENTES_201801329\\TablaSig" + numArbol + ".dot");
             PrintWriter pw2 = null;
             pw2 = new PrintWriter(fichero2);
             texto2 = "digraph { \n"
@@ -324,7 +328,7 @@ public class Arbol {
             pw2.close();
             try {
                 ProcessBuilder proceso;
-                proceso = new ProcessBuilder("dot", "-Tpng", "-o", "TablaSig" + numArbol + ".jpg", "TablaSig" + numArbol + ".dot");
+                proceso = new ProcessBuilder("dot", "-Tpng", "-o", "C:\\Users\\Mruiz\\Documents\\NetBeansProjects\\[OLC1]Proyecto1\\src\\SIGUIENTES_201801329\\TablaSig" + numArbol + ".jpg", "C:\\Users\\Mruiz\\Documents\\NetBeansProjects\\[OLC1]Proyecto1\\src\\SIGUIENTES_201801329\\TablaSig" + numArbol + ".dot");
                 proceso.start();
 
             } catch (Exception e) {
@@ -363,6 +367,7 @@ public class Arbol {
         NumEstado = null;
         NumCaracter = null;
         String estado;
+        int j;
         String caracter;
         String h[];
 
@@ -376,7 +381,7 @@ public class Arbol {
             texto3 += "<td>" + lista_caracteres.get(i).trim() + "</td>";
         }
         texto3 += "</tr> \n";
-        for (int j = 0; j < Estados.size(); j++) {
+        for (j = 0; j < Estados.size(); j++) {
             h = Estados.get(j).trim().split(",");
             num = 0;
             NumEstado = new int[25];
@@ -411,6 +416,7 @@ public class Arbol {
                 for (int v = 0; v < NumCaracter.length; v++) {
                     if (f == NumCaracter[v]) {
                         texto3 += "<td> S" + NumEstado[v] + " </td>";
+                        transAFD.add("S" + j + "," + "S" + NumEstado[v] + "," + NumCaracter[v]);
                         num++;
                         col = true;
                     }
@@ -418,24 +424,25 @@ public class Arbol {
                 if (col == false) {
                     texto3 += "<td> --- </td>";
                 }
+
             }
             texto3 += "</tr> \n";
-        }
 
+        }
         texto3 += "\n</table>\n"
                 + "\n"
                 + "    >];\n"
                 + "\n"
                 + "}";
         try {
-            fichero3 = new FileWriter("TablaTransiciones" + numArbol + ".dot");
+            fichero3 = new FileWriter("C:\\Users\\Mruiz\\Documents\\NetBeansProjects\\[OLC1]Proyecto1\\src\\TRANSICIONES_201801329\\TablaTransiciones" + numArbol + ".dot");
             PrintWriter pw3 = null;
             pw3 = new PrintWriter(fichero3);
             pw3.println(texto3);
             pw3.close();
             try {
                 ProcessBuilder proceso;
-                proceso = new ProcessBuilder("dot", "-Tpng", "-o", "TablaTransiciones" + numArbol + ".jpg", "TablaTransiciones" + numArbol + ".dot");
+                proceso = new ProcessBuilder("dot", "-Tpng", "-o", "C:\\Users\\Mruiz\\Documents\\NetBeansProjects\\[OLC1]Proyecto1\\src\\TRANSICIONES_201801329\\TablaTransiciones" + numArbol + ".jpg", "C:\\Users\\Mruiz\\Documents\\NetBeansProjects\\[OLC1]Proyecto1\\src\\TRANSICIONES_201801329\\TablaTransiciones" + numArbol + ".dot");
                 proceso.start();
 
             } catch (Exception e) {
@@ -453,5 +460,57 @@ public class Arbol {
             }
         }
 
+    }
+
+    private void graficarAFD(Nodo raizAST, int numArbol) {
+        FileWriter fichero3 = null;
+        String trans[];
+
+        texto4 = "digraph dibujo{ \n"
+                + "rankdir=LR; \n"
+                + "label = \"Nombre: AFD" + numArbol + " \" \n"
+                + " labelloc = \"t\";  \n";
+
+        for (int i = 0; i < transAFD.size(); i++) {
+            trans = transAFD.get(i).split(",");
+            if(!lista_caracteres.get(Integer.parseInt(trans[2])-1).equals("#")){
+                sinComillas = lista_caracteres.get(Integer.parseInt(trans[2])-1).replace("\"", "");
+                comodin = sinComillas;
+                if ((comodin.equals("|")) || (comodin.equals("\\n"))) {
+                    comodin = "\\" + comodin;
+                }
+                texto4 += trans[0] + "->" + trans[1] + " [ label= \"" + comodin + "\" ]; \n";
+            }
+            if (i == transAFD.size()-1) {
+                texto4 +="S"+ (Estados.size()-1) + " [shape=doublecircle label = \" S" + (Estados.size()-1) +" \" ]; \n ";
+            }
+        }
+
+        texto4 += "}";
+        try {
+            fichero3 = new FileWriter("C:\\Users\\Mruiz\\Documents\\NetBeansProjects\\[OLC1]Proyecto1\\src\\AFD_201801329\\AFD" + numArbol + ".dot");
+            PrintWriter pw3 = null;
+            pw3 = new PrintWriter(fichero3);
+            pw3.println(texto4);
+            pw3.close();
+            try {
+                ProcessBuilder proceso;
+                proceso = new ProcessBuilder("dot", "-Tpng", "-o", "C:\\Users\\Mruiz\\Documents\\NetBeansProjects\\[OLC1]Proyecto1\\src\\AFD_201801329\\AFD" + numArbol + ".jpg", "C:\\Users\\Mruiz\\Documents\\NetBeansProjects\\[OLC1]Proyecto1\\src\\AFD_201801329\\AFD" + numArbol + ".dot");
+                proceso.start();
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (null != fichero3) {
+                    fichero3.close();
+                }
+            } catch (Exception e2) {
+                e2.printStackTrace();
+            }
+        }
     }
 }

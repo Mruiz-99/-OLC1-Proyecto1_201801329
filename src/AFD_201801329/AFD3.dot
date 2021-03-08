@@ -1,0 +1,12 @@
+digraph dibujo{ 
+rankdir=LR; 
+label = "Nombre: AFD3 " 
+ labelloc = "t";  
+S0->S1 [ label= "simbols" ]; 
+S1->S1 [ label= "simbols" ]; 
+S1->S2 [ label= "minus" ]; 
+S1->S2 [ label= "mayus" ]; 
+S2->S2 [ label= "minus" ]; 
+S2->S2 [ label= "mayus" ]; 
+S2 [shape=doublecircle label = " S2 " ]; 
+ }

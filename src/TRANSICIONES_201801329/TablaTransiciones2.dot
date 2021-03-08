@@ -1,0 +1,21 @@
+digraph { 
+  tbl [ 
+ shape=plaintext
+ label=<
+<table border='0' cellborder='1' cellspacing='0' cellpadding='8'>
+ <tr><td>Estado</td><td>posibles</td><td>"-"</td><td>digito</td><td>letra</td></tr> 
+<tr><td>S0 {1} </td><td> S1 </td><td> --- </td><td> --- </td><td> --- </td></tr> 
+<tr><td>S1 {2,3} </td><td> --- </td><td> S2 </td><td> S3 </td><td> --- </td></tr> 
+<tr><td>S2 {3} </td><td> --- </td><td> --- </td><td> S3 </td><td> --- </td></tr> 
+<tr><td>S3 {4} </td><td> --- </td><td> --- </td><td> S4 </td><td> --- </td></tr> 
+<tr><td>S4 {5} </td><td> --- </td><td> --- </td><td> S5 </td><td> --- </td></tr> 
+<tr><td>S5 {6} </td><td> --- </td><td> --- </td><td> --- </td><td> S6 </td></tr> 
+<tr><td>S6 {7} </td><td> --- </td><td> --- </td><td> --- </td><td> S7 </td></tr> 
+<tr><td>S7 {8} </td><td> --- </td><td> --- </td><td> --- </td><td> S8 </td></tr> 
+<tr><td>S8 {9} </td><td> --- </td><td> --- </td><td> --- </td><td> --- </td></tr> 
+
+</table>
+
+    >];
+
+}
