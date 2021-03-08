@@ -28,8 +28,12 @@ public class Arbol {
     int fila;
     LinkedList<Integer> idAux = new LinkedList<>();
     LinkedList<String> sigAux = new LinkedList<>();
-    String texto, texto2;
+    String texto, texto2, texto3;
     String sinComillas;
+    LinkedList<String> Estados;
+    LinkedList<String> lista_caracteres;
+    LinkedList<String> hojas;
+    LinkedList<String> transiciones;
 
     /**
      * @return the listaAST
@@ -47,6 +51,7 @@ public class Arbol {
         contador++;
         texto = "";
         texto2 = "";
+        texto3 = "";
         cHojas = 0;
         i = 0;
         para = null;
@@ -54,11 +59,16 @@ public class Arbol {
         idAux = null;
         sigAux = null;
         HojaSig = null;
+        Estados = new LinkedList<>();
+        lista_caracteres = new LinkedList<>();
+        hojas = new LinkedList<>();
+        transiciones = new LinkedList<>();
         IdentificandoHojas(raizAST);
         IdentificandoPrimeroUltimo(raizAST);
         IdentificandoSiguientes(raizAST);
         graficar(raizAST, contador);
         graficarTablaSiguientes(raizAST, contador);
+        graficarTablaTransiciones(raizAST, contador);
 
     }
 
@@ -275,6 +285,7 @@ public class Arbol {
                     + " label=<\n"
                     + "<table border='0' cellborder='1' cellspacing='0' cellpadding='10'>"
                     + "\n <tr><td>Hoja</td><td>Siguientes</td></tr>";
+            Estados.add("1");
             for (int k = 1; k <= cHojas; k++) {
                 sigAux = ExisteSiguiente(raiz, k);
                 if (sigAux != null) {
@@ -285,6 +296,22 @@ public class Arbol {
                         aux += sigAux.get(l);
                     }
                     texto2 += "\n <tr><td>" + k + ".  " + ValorK(raiz, k) + "</td><td>" + aux + "</td></tr>";
+                    if (!aux.isEmpty()) {
+                        if (Estados.contains(aux.trim())) {
+
+                        } else {
+                            Estados.add(aux.trim());
+                        }
+                        transiciones.add(aux.trim());
+
+                    }
+                    if (lista_caracteres.contains(ValorK(raiz, k))) {
+
+                    } else {
+                        lista_caracteres.add(ValorK(raiz, k).trim());
+                    }
+                    hojas.add(ValorK(raiz, k).trim());
+
                     aux = "";
                 }
             }
@@ -325,5 +352,106 @@ public class Arbol {
             }
         }
         return nombre;
+    }
+
+    private void graficarTablaTransiciones(Nodo raizAST, int numArbol) {
+        FileWriter fichero3 = null;
+        int NumEstado[];
+        int NumCaracter[];
+        int num = 0;
+        int num2 = 0;
+        NumEstado = null;
+        NumCaracter = null;
+        String estado;
+        String caracter;
+        String h[];
+
+        texto3 = "digraph { \n"
+                + "  tbl [ \n"
+                + " shape=plaintext\n"
+                + " label=<\n"
+                + "<table border='0' cellborder='1' cellspacing='0' cellpadding='8'>"
+                + "\n <tr><td>Estado</td>";
+        for (int i = 0; i < lista_caracteres.size() - 1; i++) {
+            texto3 += "<td>" + lista_caracteres.get(i).trim() + "</td>";
+        }
+        texto3 += "</tr> \n";
+        for (int j = 0; j < Estados.size(); j++) {
+            h = Estados.get(j).trim().split(",");
+            num = 0;
+            NumEstado = new int[25];
+            NumCaracter = new int[25];
+            for (int x = 0; x < h.length; x++) {
+                caracter = hojas.get(Integer.parseInt(h[x]) - 1);
+                if (!caracter.equals("#")) {
+                    estado = transiciones.get(Integer.parseInt(h[x]) - 1);
+                    for (int i = 0; i < lista_caracteres.size(); i++) {
+                        if (lista_caracteres.get(i).equals(caracter)) {
+                            //numero de columna ha insertar
+                            num2 = i + 1;
+                            NumCaracter[num] = num2;
+                        }
+                    }
+                    for (int f = 0; f < Estados.size(); f++) {
+                        if (Estados.get(f).equals(estado)) {
+                            //retorna el numero de estado para el caracter
+                            num2 = f;
+                            NumEstado[num] = f;
+                        }
+                    }
+                    num++;
+                }
+            }
+            num = 0;
+            boolean col = false;
+            texto3 += "<tr><td>S" + j + " {" + Estados.get(j).trim() + "} </td>";
+
+            for (int f = 1; f < lista_caracteres.size(); f++) {
+                col = false;
+                for (int v = 0; v < NumCaracter.length; v++) {
+                    if (f == NumCaracter[v]) {
+                        texto3 += "<td> S" + NumEstado[v] + " </td>";
+                        num++;
+                        col = true;
+                    }
+                }
+                if (col == false) {
+                    texto3 += "<td> --- </td>";
+                }
+            }
+            texto3 += "</tr> \n";
+        }
+
+        texto3 += "\n</table>\n"
+                + "\n"
+                + "    >];\n"
+                + "\n"
+                + "}";
+        try {
+            fichero3 = new FileWriter("TablaTransiciones" + numArbol + ".dot");
+            PrintWriter pw3 = null;
+            pw3 = new PrintWriter(fichero3);
+            pw3.println(texto3);
+            pw3.close();
+            try {
+                ProcessBuilder proceso;
+                proceso = new ProcessBuilder("dot", "-Tpng", "-o", "TablaTransiciones" + numArbol + ".jpg", "TablaTransiciones" + numArbol + ".dot");
+                proceso.start();
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (null != fichero3) {
+                    fichero3.close();
+                }
+            } catch (Exception e2) {
+                e2.printStackTrace();
+            }
+        }
+
     }
 }
